@@ -1,0 +1,267 @@
+#!/bin/bash
+
+#create a X11 based cursor theme from a windows (.cur .ani) cursor theme
+#takes at least one argument, the folder where the windows cursors files are.
+
+#this script creates a $1-x11 with the converted files, ready
+#to customize and tar.gz for install.
+
+if [ $1 = "-h" ]; then
+	echo "`basename $0` Version 0.01
+Convert a native windows cursor theme to X11 cursor theme.
+
+Usage: `basename $0` <directory> size x y delay
+
+<folder>: Mandatory, where the .cur and .ani windows cursor theme files are located.
+size: Size of xcursor in pixels (32 default or size of generated .png file).
+x, y: X,Y to start making the north-west tip of the cursor (0,0 default).
+delay: In microseconds to render each animated xcursor frame (200 defaults).
+-h: This help.
+"
+	exit 
+fi
+
+#set defaults
+origpwd="$(pwd)"
+bin="bin"	#folder where bin are.
+fndatafile="$origpwd/$bin/fndata.txt"
+
+tipx=0
+tipy=0
+delay=200
+siz=32
+debug=1
+if (( ! $debug )); then
+if [[ ! "$1" ]]; then
+	echo "please provide a directory where windows .cur .ani cursors files are, -h for help";
+	exit 1
+fi 
+
+#check for an empty folder
+shopt -s nullglob
+shopt -s dotglob # To include hidden files
+files=($1/*)
+if [ ${#files[@]} == 0 ]; then 
+	echo "Folder is empty, use -h for help"
+	exit
+fi
+
+#if more variables
+[[ $2 ]] && siz=$2
+[[ $3 ]] && tipx=$3
+[[ $4 ]] && tipy=$4
+[[ $5 ]] && delay=$5
+
+#check if already exist
+if [ -d $1-x11 ]; then 
+	echo "Folder '$1-x11' already exist, please rename or delete folder and try again."
+	exit 1
+fi
+[ ! -d $1-x11 ] && mkdir -p $1-x11/cursors
+
+#first lets convert the .cur files to .png and copy them to $1-x11-work
+cd $1
+
+#we dont like spaces within filenames, so lets get them out
+#If windows theme had filenames with spaces in between use:
+for FILE in *; do mv -v "$FILE" `echo $FILE | tr ' ' '_' `; done 2> /dev/null
+
+
+for i in *.cur; do 
+	j=$(echo "$i"|sed "s/.cur//g")
+	if [ ! -z "$i" ]; then
+		convert icon:$i $j.png 2> /dev/null
+	fi 
+done
+mv *.png $origpwd/$1-x11/cursors/.
+
+
+#convert .ani to *.ico
+[ ! -d ico ] && mkdir ico
+for i in *.ani; do
+	j=$(echo "$i"|sed "s/.ani//g")
+	mkdir "ico/$j"
+	$origpwd/$bin/ani2ico $i
+	mv *.ico ico/$j/.
+done
+
+#lets convert each of the .ico files to .png files for each folder
+
+cd ico
+mkdir png
+
+for d in `ls -d */`; do
+	i=$(echo "$d"|sed "s/\///g")
+	if [[ "$i" != "png" ]]; then
+		mkdir -p png/$i
+		cd $i
+		for f in *.ico; do
+			o=$(echo "$f"|sed "s/.ico//g")
+			convert $f $o.png
+		done
+		mv *.png ../png/$i/.
+		cd ..
+	fi
+done
+
+#lets create the .in and create the animated xcursor
+
+cd png
+
+for d in `ls -d */`; do
+
+	i=$(echo "$d"|sed "s/\///g")
+
+	cd $i
+	touch $i.in
+
+	for m in *.png; do
+		if [[ ! $siz ]]; then
+			siz=$(file $m | awk '{print $5}')
+		fi
+		echo "$siz $tipx $tipy $m $delay" >> $i.in		
+	done
+	siz=""
+
+	xcursorgen $i.in $origpwd/$1-x11/cursors/$i
+	cd ..
+done
+
+
+
+# clean up
+rm -rf $origpwd/$1/ico
+cd $origpwd/$1-x11
+
+#lets create cursor.theme and index.theme
+
+cat > cursor.theme <<DELIM
+[Icon Theme]
+Inherits=$1
+DELIM
+
+cat > index.theme <<DELIM
+[Icon Theme]
+Name = $1
+Comment = $1 X11 Cursor Theme, Original Windows Theme converted using 'win2x11' Ver. 0.01
+Example=default
+Inherits=core
+Name[ar]=$1 (أبيض)
+Name[bg]=$1 (Бял цвят)
+Name[ca]=$1 (Blanc)
+Name[cs]=$1 (Bílá)
+Name[da]=$1 (Hvid)
+Name[de]=$1 (Weiß)
+Name[dz]=$1 (དཀར་པོ།)
+Name[el]=$1 (Λευκό)
+Name[en_CA]=$1 (White)
+Name[en_GB]=$1 (White)
+Name[eo]=$1 (Blanko)
+Name[es]=$1 (Blanco)
+Name[et]=$1 (Valge)
+Name[eu]=$1 (Zuria)
+Name[fi]=$1 (Valkoinen)
+Name[fr]=$1 (Blanc)
+Name[ga]=$1 (Bán)
+Name[gl]=$1 (Branco)
+Name[gu]=$1 (સફેદ)
+Name[he]=$1 (לבן)
+Name[hr]=$1 (Bijela)
+Name[hu]=$1 (Fehér)
+Name[id]=$1 ()
+Name[it]=$1 (Bianco)
+Name[ja]=$1 (白)
+Name[km]=$1 (ស)
+Name[ko]=$1 (흰색)
+Name[lt]=$1 (Baltas)
+Name[mk]=$1 (Бела)
+Name[ms]=$1 (Putih)
+Name[nb]=$1 (Hvit)
+Name[ne]=$1 (सेतो)
+Name[nl]=$1 (Wit)
+Name[pa]=$1 (ਸਫੈਦ)
+Name[pl]=$1 (Białe)
+Name[pt_BR]=$1 (Branco)
+Name[pt]=$1 (Branco)
+Name[ro]=$1 (Alb)
+Name[ru]=$1 (Белое)
+Name[rw]=$1 (Umweru)
+Name[sk]=$1 (Biely)
+Name[sr@Latn]=$1 (Bela)
+Name[sr]=$1 (Бела)
+Name[sv]=$1 (Vit)
+Name[tr]=$1 (Beyaz)
+Name[tt]=$1 (Aq)
+Name[uk]=$1 (Біле)
+Name[vi]=$1 (Trắng)
+Name[xh]=$1 (Mhlophe)
+Name[yi]=$1 ()
+Name[zh_CN]=$1 (白色)
+Name[zh_TW]=$1 (白色)
+DELIM
+
+fi #debug
+
+#lets rename files using fndata.txt info
+#please help if you know the filenames of the missing xcursor-x
+#in windows, send me an email to: leprechuanese@gmail.com
+#with your findings, or use the "sharetheme" to send me
+#the complete theme, thank you
+
+
+cd $origpwd/$1-x11/cursors
+
+for f in *.png; do
+	#reset if found the filename in $fndatafile
+	foundit=0
+	#since we dont like CAPS lets lowercase them
+	#X_cursor seems to be the only xcursor-x file with a CAP letter
+	while IFS=$'\t' read -r col1 col2 col3; do
+		#check if lowercase $f same as lowercase $line
+		fnoext=${f%????}  #take off extention
+
+		#ignore if is a commentary
+		if [[ "${col1:0:1}" != "#" ]]; then
+			echo "${fnoext,,}" = "${col1,,}"
+			if [[ "${fnoext,,}" = "${col1,,}" ]]; then
+	      			printf "mv $f $col1"
+				foundit=1
+			fi
+		fi
+    	done < "$fndatafile"
+	if (( ! $foundit )); then
+		echo "$fnoext" >> $fndatafile
+	fi
+done
+# string="01234567890abcdefgh";echo "${string:(-4)}"
+cd $origpwd
+echo "Theme converted, please customize as need
+theme: $origpwd/$1-x11"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

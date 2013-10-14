@@ -1,0 +1,138 @@
+#!/bin/bash
+
+#add new x11 items to fndata, run this only in icon themes of x11
+#or fndata.txt will get mix up
+
+#set defaults
+origpwd="$(pwd)"
+bin="bin"	#folder where bin are.
+fndatafile="$origpwd/$bin/fndata"
+UPDATE_THIS="UPDATE_THIS"
+UPDATE_THIS_COMMENT="Please Update Description"
+if [[ ! "$1" ]]; then
+	echo "please provide a x11 cursor folder to update $fndatafile";
+	exit 1
+fi 
+
+cd "$1"
+#for f in *; do
+
+	#check if is a symlink, if is then check into is not 
+	#longer a symlink and then create a new item.
+	typesym="H" #H = Hard Link S=Symlink
+	#issym=$(ls -al "$f" | awk '{print $10}')
+	#fileexistflag=0 #we assume does not exist
+	#if [[ "$(file $f | awk '{print $2}')" = "symbolic" ]]; then
+		#is a symlink
+	#	typesym="S"
+	#	symfilename=$(file $f | awk '{print $5}' | sed 's/`//g'|sed "s/'//g")
+	#fi
+#		symfilename=$(ls -al $f | awk '{print $11}')
+#
+#		while true; do
+#			if [[ ! -f "$symfilename" ]]; then
+#				#IS NOT A FILE ANYMORE, BREAK LOOP
+#				break
+#			fi
+#
+#			symfilename2=$(ls -al "$symfilename" | awk '{print $11}')
+#			symfilename="$symfilename2"
+#			issymlink=$(ls -al "$symfilename" | awk '{print $10}')
+#
+#			if [[ ! "$issymlink" = "->" ]]; then
+#				#file exist but is not symlink
+#				fileexistflag=1
+#				break
+#			fi
+#			
+#		done		
+#	fi
+#exit
+	#reset if found the filename in $fndatafile
+	foundit=0
+	#since we dont like CAPS lets lowercase them
+	#X_cursor seems to be the only xcursor-x file with a CAP letter
+	
+	#STATIC - STATIC
+	#while [[ "${animated:0:1}" != "#" ]]; do
+		#ignore comments
+	for f in *; do
+
+		if [[ "$(file $f | awk '{print $2}')" = "symbolic" ]]; then
+			#fisrt lets proccess the non-symbolics
+			if [[ "$(file $f | awk '{print $2}')" = "X11" ]]; then
+				#it is a X11 cursor
+				found=0
+				while IFS=$'|' read -r animated typefile windows x11 comment; do
+					#check if lowercase $f same as lowercase $line
+					#fnoext=${f%????}  #take off extention
+					while [[ "${animated:0:1}" != "#" ]]; do
+						fnoext=$(echo "$f" | sed 's/.png//g')
+						fnoext=$(echo "$f" | sed 's/ //g')
+	
+						x11=$(echo "${x11,,}" | sed 's/.png//g')
+						x11=$(echo "${x11,,}" | sed 's/.png//g')
+						if [[ "${fnoext}" = "${x11}" ]]; then
+							found=1
+							echo "0|H|$fnoext|$x11|$UPDATE_THIS_COMMENT" #>> $fndatafile.static
+							echo "*found"
+						fi
+					done #is not a comment
+				done < "$fndatafile.static" #read file
+				if (( ! $found )); then
+					#not found, create a new one
+					echo "1|H|$UPDATE_THIS|$fnoext|$UPDATE_THIS_COMMENT" #>> $fndatafile.anim
+					break
+				fi
+			fi #is a X11 cursor
+		fi #is not symbolic
+	done #for files .png
+exit		
+	#echo "$fnoext $col2"
+
+				#ignore if is a commentary
+				if [[ "${animated:0:1}" != "#" ]]; then #&& [[ "$windows" != "$UPDATE_THIS" ]] && [[ "$animated" != "" ]]; then
+			#echo "${fnoext,,}" = "${col2,,}"
+			if [[ "${fnoext,,}" = "${x11,,}" ]]; then
+				foundit=1
+				break
+				#echo "*found $fnoext"
+			#else
+				#echo "*not found"
+			fi
+		else
+			foundit=0
+		fi
+    	done < "$fndatafile.static"
+
+	if [[ "${animated:0:1}" != "#" ]]; then
+
+		if ((  $foundit )); then
+			fnoext=$symfilename
+			#echo "adding new '$fnoext' to $fndatafile.static"
+			#if [[ "$windows" != "$UPDATE_THIS" ]]; then
+			if [[ "$typesym" = "H" ]]; then
+				#is a symlink to other file
+				echo "0|$typesym|$UPDATE_THIS|$fnoext|$UPDATE_THIS_COMMENT" >> $fndatafile.static
+			else
+				#is a Symlink
+				echo "0|$typesym|$fnoext|$symfilename|$UPDATE_THIS_COMMENT" >> $fndatafile.static
+			
+			fi
+		#fi
+		fi
+	else
+	#	if [[ "$fnoext" != "$symfilename" ]]; then
+			#if [[ ! "$fnoext" ]]; then
+			#	fnoext="MISSING"
+			#fi
+			echo "0|$typesym|$UPDATE_THIS|$symfilename|$UPDATE_THIS_COMMENT" >> $fndatafile.static
+	#	fi
+	fi
+done
+
+# string="01234567890abcdefgh";echo "${string:(-4)}"
+cd $origpwd
+
+
+
