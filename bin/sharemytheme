@@ -1,0 +1,56 @@
+#!/bin/bash
+
+#compress and share your theme with other users
+#run this script to send a .tar.gz of your theme to
+#our email, please share it in our github.
+# https://github.com/leprechuanese/win2x11/
+# or send us your changes to leprechuanese@gmail.com
+#
+
+if [[ "$1" = "-h" ]]; then
+echo "`basename $0` Version 0.01
+Share your themes with other users
+Your theme will be visible at:
+https://github.com/leprechuanese/win2x11/users
+
+Usage: `basename $0` <directory> Your_Email@address
+
+<directory>: Mandatory, where the cursor theme root files are located.
+-h: This help.
+"
+	exit 
+fi
+if [[ ! "$1" ]]; then
+	echo "please provide a directory where windows .cur .ani cursors files are, -h for help";
+	exit 1
+fi 
+
+#check for an empty folder
+shopt -s nullglob
+shopt -s dotglob # To include hidden files
+files=($1/*)
+if [ ${#files[@]} == 0 ]; then 
+	echo "Folder is empty, use -h for help"
+	exit
+fi
+echo $1 $2
+
+tar -zcvf "$1.tar.gz" "$1"
+# This needs heirloom-mailx
+from="$2"
+to="leprechuanese@gmail.com"
+subject="Some fancy title"
+body="This is the body of our email"
+declare -a attachments
+attachments=( "$1.tar.gz" )
+ 
+declare -a attargs
+for att in "${attachments[@]}"; do
+  attargs+=( "-a"  "$att" )  
+done
+ 
+mail -s "$subject" -r "$from" "${attargs[@]}" "$to" <<< "$body"
+
+
+
+echo "Thank you for sharing, your email was been send!"
