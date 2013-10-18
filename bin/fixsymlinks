@@ -1,0 +1,78 @@
+#!/bin/bash
+#fix symlinks and add new ones if now exist
+# 
+
+#set defaults
+origpwd="$(pwd)"
+bin="bin"	#folder where bin are.
+cursors="$origpwd/$bin/cursors"
+fndatafile="$origpwd/$bin/fndata"
+
+if [ $1 = "-h" ]; then
+	echo "`basename $0` Version 0.01
+Fix theme to X11 cursor theme based on symlinks in $cursors.
+
+Usage: `basename $0` <directory> -unlink
+
+<directory>: Mandatory, where the cursor theme files are located.
+-unlink: undo syslinks.
+-h: This help.
+"
+	exit 
+fi
+
+
+[[ ! -f "$fndatafile" ]] && touch "$fndatafile"
+
+if [[ -s $fndatafile ]] ; then
+	echo "$fndatafile has data."
+else
+	echo "# $fndatafile $(date)" >> $fndatafile
+	echo '# $typefile|$f|$hardf|$size|$xhot|$yhot|$msdelay|$comment'  >> $fndatafile
+	echo "# " >> $fndatafile
+fi
+
+if [[ ! "$1" ]]; then
+	echo "please provide a x11 cursor folder to update $fndatafile";
+	exit 1
+fi 
+
+
+cd "$1"
+#reset if found the filename in $fndatafile
+foundit=0
+	
+while IFS=$'|' read -r typefile windows x11 size xhot yhot msdelay comment; do
+	found=0 #reset found
+	if [[ "${typefile:0:1}" = "#" ]] || [[ "$typefile" = "" ]]; then
+		echo "skipping comment or empty string"
+	else
+		if (( $typefile )); then
+			echo "processing: $typefile|$windows|$x11|$size|$xhot|$yhot|$msdelay|$comment"
+			if [[ ! -f "$1/$windows" ]]; then
+				#file does not exist, create a symlink
+				if [[ ! -f "$1/$x11"  ]]; then
+					#hardlink file not exist copy from archived
+					if [[ -f "$cursors/$x11" ]]; then
+						echo "$cursors/$x11"
+						cp "$cursors/$x11" "$origpwd/$1/$x11"
+					fi
+
+					if [[ "$2" = "-unlink" ]]; then
+						echo "unlink $windows"
+						unlink "$windows"
+					else
+						echo "ln -s $x11 $windows" 
+						ln -s "$x11" "$windows"
+					fi
+				fi
+			fi
+		fi
+	fi	
+done < "$fndatafile" #read file
+
+
+
+
+
+
