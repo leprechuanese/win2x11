@@ -63,3 +63,5 @@
 0|xterm|xterm|32|1|1|200|Hardlink (DMZ-White/cursors:xterm)
 # trollface theme, original from http://www.rw-designer.com/cursor-set/troll-face-v64
 
+0|Busy|Busy|32|1|1|200|Hardlink (opensuse-oxygen-x11/cursors:Busy)
+0|Working_in_background|Working_in_background|32|1|1|200|Hardlink (opensuse-oxygen-x11/cursors:Working_in_background)

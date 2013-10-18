@@ -14,7 +14,7 @@ Usage: `basename $0` <directory> size x y delay
 
 <folder>: Mandatory, where the .cur and .ani windows cursor theme files are located.
 size: Size of xcursor in pixels (32 default or size of generated .png file).
-x, y: X,Y to start making the north-west tip of the cursor (0,0 default).
+x, y: X,Y is the position where the tip of the cursor is gone click (0,0 default).
 delay: In microseconds to render each animated xcursor frame (200 defaults).
 -h: This help.
 "
@@ -28,9 +28,9 @@ fndatafile="$origpwd/$bin/fndata.txt"
 
 tipx=0
 tipy=0
-delay=200
+delay=40
 siz=32
-debug=1
+debug=0
 if (( ! $debug )); then
 if [[ ! "$1" ]]; then
 	echo "please provide a directory where windows .cur .ani cursors files are, -h for help";
@@ -140,6 +140,40 @@ cat > cursor.theme <<DELIM
 Inherits=$1
 DELIM
 
+cat > readme <<DELIM
+`basename $0` Version 0.0.1 $(date)
+
+This theme is been converted from a windows theme
+using `basename $0`
+You can get the latest source code by cloning the repo:
+git clone https://github.com/leprechuanese/win2x11.git
+
+Please shere your themes by sending a email to:
+leprechuanese@gmail.com
+
+Your theme will be available at:
+https://github.com/leprechuanese/win2x11/users
+
+Along with others, if you fix/modify/add data in
+bin/fndata with the correct names from windows filenames to
+x11 filenames please send us the bin/fndata file via email
+that way we can share your find with other users, the format 
+its very simple, the $windows and $x11 variables are  the ones
+the script will rename (mv $windows $x11) so xcursor x11 files
+will be pick up by x11, try to keep the default $msdelay to
+40 milliseconds and if you have different cursor sizes please
+share them too.
+
+Please help me update the xhot and yhot positions on each cursor
+convert, that position mark where the user is gone click the mouse
+cursor, so depends a lot in how the xcursor-x its been draw, i left
+to 0,0, some cursors will be offlined.
+
+if you add new files to bin/cursors please do the same!
+Thank you.
+DELIM
+
+
 cat > index.theme <<DELIM
 [Icon Theme]
 Name = $1
@@ -211,32 +245,12 @@ fi #debug
 
 cd $origpwd/$1-x11/cursors
 
-for f in *.png; do
-	#reset if found the filename in $fndatafile
-	foundit=0
-	#since we dont like CAPS lets lowercase them
-	#X_cursor seems to be the only xcursor-x file with a CAP letter
-	while IFS=$'\t' read -r col1 col2 col3; do
-		#check if lowercase $f same as lowercase $line
-		fnoext=${f%????}  #take off extention
-
-		#ignore if is a commentary
-		if [[ "${col1:0:1}" != "#" ]]; then
-			echo "${fnoext,,}" = "${col1,,}"
-			if [[ "${fnoext,,}" = "${col1,,}" ]]; then
-	      			printf "mv $f $col1"
-				foundit=1
-			fi
-		fi
-    	done < "$fndatafile"
-	if (( ! $foundit )); then
-		echo "$fnoext" >> $fndatafile
-	fi
-done
 # string="01234567890abcdefgh";echo "${string:(-4)}"
 cd $origpwd
+tar -zcvf "$1.tar.gz" "$1"
 echo "Theme converted, please customize as need
-theme: $origpwd/$1-x11"
+theme: $origpwd/$1-x11
+or if you satisfied install: $origpwd/$1.tar.gz"
 
 
 
